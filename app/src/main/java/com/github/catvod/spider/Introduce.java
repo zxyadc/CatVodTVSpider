@@ -20,12 +20,12 @@ public class Introduce extends Spider {
     @Override
     public String homeContent(boolean filter) throws Exception {
         List<Vod> list = new ArrayList<>();
-        String pic = "https://androidcatvodspider.pages.dev/wechat.png";
+        String pic = "https://androidcatvodspider.netlify.app/wechat.png";
         String name = "关注公众号";
-        list.add(new Vod("https://androidcatvodspider.pages.dev/wechat.png", name, pic));
-        String pic2 = "https://androidcatvodspider.pages.dev/wechat.png";
+        list.add(new Vod("https://androidcatvodspider.netlify.app/wechat.png", name, pic));
+        String pic2 = "https://androidcatvodspider.netlify.app/wechat.png";
         String name2 = "本接口不收费，请不要付费，谢谢！";
-        list.add(new Vod("https://androidcatvodspider.pages.dev/wechat.png", name2, pic2));
+        list.add(new Vod("https://androidcatvodspider.netlify.app/wechat.png", name2, pic2));
         return Result.string(list);
     }
 
