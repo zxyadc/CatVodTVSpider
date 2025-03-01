@@ -1,27 +1,28 @@
 {
-  "spider": "https://androidcatvodspider.netlify.app/jar/custom_spider.jar;md5;fc8f8fde90c2943674e0e38b00053bd5",
+  "spider": "https://androidcatvodspider.netlify.app/jar/custom_spider.jar;md5;cb3d867389c8616647f4dcd1263c498d",
   "lives": [
+
+    {
+      "name": "电视直播",
+      "type": "0",
+      "pass": true,
+      "url": "https://tv.iill.top/m3u/Gather",
+      "epg": "https://epg.112114.xyz/?ch={name}&date={date}",
+      "logo": "https://epg.112114.xyz/logo/{name}.png"
+    },
+    {
+      "name": "网络直播",
+      "type": "0",
+      "pass": true,
+      "url": "https://tv.iill.top/m3u/Live",
+      "epg": "https://epg.112114.xyz/?ch={name}&date={date}",
+      "logo": "https://epg.112114.xyz/logo/{name}.png"
+    },
     {
       "name": "直播",
       "type": "0",
       "pass": true,
-      "url": "https://ghp.ci/https://raw.githubusercontent.com/zwc456baby/iptv_alive/master/live.txt",
-      "epg": "https://epg.112114.xyz/?ch={name}&date={date}",
-      "logo": "https://epg.112114.xyz/logo/{name}.png"
-    },
-    {
-      "name": "直播ipv6",
-      "type": "0",
-      "pass": true,
-      "url": "https://fanmingming.com/txt?url=https://live.fanmingming.com/tv/m3u/ipv6.m3u",
-      "epg": "https://epg.112114.xyz/?ch={name}&date={date}",
-      "logo": "https://epg.112114.xyz/logo/{name}.png"
-    },
-    {
-      "name": "一木",
-      "type": "0",
-      "pass": true,
-      "url": "https://ghp.ci/https://raw.githubusercontent.com/xianyuyimu/TVBOX-/main/TVBox/%E4%B8%80%E6%9C%A8%E7%9B%B4%E6%92%AD%E6%BA%90.txt",
+      "url": "https://ghfast.top/https://raw.githubusercontent.com/Wirili/IPTV/main/live.txt",
       "epg": "https://epg.112114.xyz/?ch={name}&date={date}",
       "logo": "https://epg.112114.xyz/logo/{name}.png"
     },
@@ -67,13 +68,66 @@
       "ext": "{\"site\": [\"https://www.wogg.net/\",\"https://wogg.xxooo.cf/\"]}"
     },
     {
-      "key": "木偶",
-      "name": "木偶哥哥",
+      "key": "欧歌",
+      "name": "欧歌|Pan",
       "type": 3,
       "api": "csp_Mogg",
       "searchable": 1,
       "changeable": 1,
       "ext": {}
+    },
+    {
+      "key": "多多影音",
+      "name": "多多影音|Pan",
+      "type": 3,
+      "api": "csp_DuoDuo",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": "{\"site\": [\"https://tv.yydsys.top/\"]}"
+    },
+    {
+      "key": "蜡笔盘盘",
+      "name": "蜡笔盘盘|Pan",
+      "type": 3,
+      "api": "csp_NaBi",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": "{\"site\": [\"https://duopan.fun/\"]}"
+    },
+    {
+      "key": "闪电优汐",
+      "name": "闪电优汐|Pan",
+      "type": 3,
+      "api": "csp_ShanDian",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": "{\"site\": [\"http://1.95.79.193/\"]}"
+    },
+    {
+      "key": "特下饭",
+      "name": "特下饭|Pan",
+      "type": 3,
+      "api": "csp_TeXiaFan",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": "{\"site\": [\"http://www.xn--ghqy10g1w0a.xyz/\",\"http://www.txfyyda.top/\",]}"
+    },
+    {
+      "key": "小米",
+      "name": "小米UC|Pan",
+      "type": 3,
+      "api": "csp_XiaoMi",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": "{\"site\": [\"http://mucpan.cc/\",\"http://milvdou.fun/\"]}"
+    },{
+      "key": "至臻视觉",
+      "name": "至臻视觉|Pan",
+      "type": 3,
+      "api": "csp_ZhiZhen",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": "{\"site\": [\"https://mihdr.top/\"]}"
     },
     {
       "key": "KuaKeBa",
@@ -101,7 +155,15 @@
       "changeable": 1,
       "ext": {}
     },
-
+    {
+      "key": "云盘资源网",
+      "name": "云盘资源网",
+      "type": 3,
+      "api": "csp_YunPanZiYuan",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": ""
+    },
     {
       "key": "XuanFeng",
       "name": "旋风影视",

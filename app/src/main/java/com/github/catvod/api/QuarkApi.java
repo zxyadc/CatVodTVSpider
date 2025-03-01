@@ -162,7 +162,14 @@ public class QuarkApi {
         getShareToken(shareData);
         List<Item> files = new ArrayList<>();
         List<Item> subs = new ArrayList<>();
-        List<Map<String, Object>> listData = listFile(1, shareData, files, subs, shareData.getShareId(), shareData.getFolderId(), 1);
+        try {
+            List<Map<String, Object>> listData = listFile(1, shareData, files, subs, shareData.getShareId(), shareData.getFolderId(), 1);
+
+        } catch (Exception e) {
+            SpiderDebug.log("资源已取消:" + e.getMessage());
+            Notify.show("资源已取消");
+            throw  new RuntimeException(e);
+        }
 
         List<String> playFrom = QuarkApi.get().getPlayFormatList();
 

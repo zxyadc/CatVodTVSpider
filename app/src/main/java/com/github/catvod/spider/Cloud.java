@@ -54,14 +54,15 @@ public class Cloud extends Spider {
 
     protected String detailContentVodPlayFrom(List<String> shareLinks) {
         List<String> from = new ArrayList<>();
-
+int i =0;
         for (String shareLink : shareLinks) {
+            i++;
             if (shareLink.matches(Util.patternUC)) {
-                from.add(uc.detailContentVodPlayFrom(List.of(shareLink)));
+                from.add(uc.detailContentVodPlayFrom(List.of(shareLink),i));
             } else if (shareLink.matches(Util.patternQuark)) {
-                from.add(quark.detailContentVodPlayFrom(List.of(shareLink)));
+                from.add(quark.detailContentVodPlayFrom(List.of(shareLink),i));
             } else if (shareLink.matches(Util.patternAli)) {
-                from.add(ali.detailContentVodPlayFrom(List.of(shareLink)));
+                from.add(ali.detailContentVodPlayFrom(List.of(shareLink),i));
             }
         }
 
