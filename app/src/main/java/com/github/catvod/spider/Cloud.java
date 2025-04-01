@@ -2,6 +2,7 @@ package com.github.catvod.spider;
 
 import android.content.Context;
 import android.text.TextUtils;
+import com.github.catvod.api.TianyiApi;
 import com.github.catvod.crawler.Spider;
 import com.github.catvod.utils.Json;
 import com.github.catvod.utils.Util;
@@ -10,6 +11,8 @@ import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.github.catvod.api.TianyiApi.URL_START;
+
 /**
  * @author ColaMint & Adam & FongMi
  */
@@ -17,6 +20,7 @@ public class Cloud extends Spider {
     private Quark quark = null;
     private Ali ali = null;
     private UC uc = null;
+    private TianYi tianYi = null;
 
     @Override
     public void init(Context context, String extend) throws Exception {
@@ -24,9 +28,11 @@ public class Cloud extends Spider {
         quark = new Quark();
         uc = new UC();
         ali = new Ali();
+        tianYi = new TianYi();
         quark.init(context, ext.has("cookie") ? ext.get("cookie").getAsString() : "");
         uc.init(context, ext.has("uccookie") ? ext.get("uccookie").getAsString() : "");
         ali.init(context, ext.has("token") ? ext.get("token").getAsString() : "");
+        tianYi.init(context, ext.has("tianyicookie") ? ext.get("tianyicookie").getAsString() : "");
     }
 
     @Override
@@ -37,6 +43,8 @@ public class Cloud extends Spider {
             return quark.detailContent(shareUrl);
         } else if (shareUrl.get(0).matches(Util.patternUC)) {
             return uc.detailContent(shareUrl);
+        } else if (shareUrl.get(0).startsWith(TianyiApi.URL_START)) {
+            return tianYi.detailContent(shareUrl);
         }
         return null;
     }
@@ -47,6 +55,8 @@ public class Cloud extends Spider {
             return quark.playerContent(flag, id, vipFlags);
         } else if (flag.contains("uc")) {
             return uc.playerContent(flag, id, vipFlags);
+        } else if (flag.contains("天意")) {
+            return tianYi.playerContent(flag, id, vipFlags);
         } else {
             return ali.playerContent(flag, id, vipFlags);
         }
@@ -54,15 +64,17 @@ public class Cloud extends Spider {
 
     protected String detailContentVodPlayFrom(List<String> shareLinks) {
         List<String> from = new ArrayList<>();
-int i =0;
+        int i = 0;
         for (String shareLink : shareLinks) {
             i++;
             if (shareLink.matches(Util.patternUC)) {
-                from.add(uc.detailContentVodPlayFrom(List.of(shareLink),i));
+                from.add(uc.detailContentVodPlayFrom(List.of(shareLink), i));
             } else if (shareLink.matches(Util.patternQuark)) {
-                from.add(quark.detailContentVodPlayFrom(List.of(shareLink),i));
+                from.add(quark.detailContentVodPlayFrom(List.of(shareLink), i));
             } else if (shareLink.matches(Util.patternAli)) {
-                from.add(ali.detailContentVodPlayFrom(List.of(shareLink),i));
+                from.add(ali.detailContentVodPlayFrom(List.of(shareLink), i));
+            } else if (shareLink.startsWith(URL_START)) {
+                from.add(tianYi.detailContentVodPlayFrom(List.of(shareLink), i));
             }
         }
 
@@ -78,6 +90,8 @@ int i =0;
                 urls.add(quark.detailContentVodPlayUrl(List.of(shareLink)));
             } else if (shareLink.matches(Util.patternAli)) {
                 urls.add(ali.detailContentVodPlayUrl(List.of(shareLink)));
+            } else if (shareLink.startsWith(URL_START)) {
+                urls.add(tianYi.detailContentVodPlayUrl(List.of(shareLink)));
             }
         }
         return TextUtils.join("$$$", urls);

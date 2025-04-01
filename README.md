@@ -18,6 +18,9 @@ jsSpider 参考 https://github.com/jadehh/TVSpider
 ## 贡献
 请参考 [CONTRIBUTING.md](/CONTRIBUTING.md)
 
+## 教程
+请参考 [USE.md](/USE.md)
+
 ## ✨ Star 数
 
 [![Star History Chart](https://api.star-history.com/svg?repos=lushunming/AndroidCatVodSpider&type=Date)](https://star-history.com/#lushunming/AndroidCatVodSpider&Date)

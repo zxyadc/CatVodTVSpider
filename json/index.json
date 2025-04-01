@@ -1,7 +1,6 @@
 {
-  "spider": "https://androidcatvodspider.netlify.app/jar/custom_spider.jar;md5;cb3d867389c8616647f4dcd1263c498d",
+  "spider": "https://androidcatvodspider.netlify.app/jar/custom_spider.jar;md5;2564bdb95b6b930b55efb4bdfff9f588",
   "lives": [
-
     {
       "name": "电视直播",
       "type": "0",
@@ -38,7 +37,7 @@
   "sites": [
     {
       "key": "Introduce",
-      "name": "注意事项",
+      "name": "Cookie设置",
       "type": 3,
       "api": "csp_Introduce"
     },
@@ -120,7 +119,8 @@
       "searchable": 1,
       "changeable": 1,
       "ext": "{\"site\": [\"http://mucpan.cc/\",\"http://milvdou.fun/\"]}"
-    },{
+    },
+    {
       "key": "至臻视觉",
       "name": "至臻视觉|Pan",
       "type": 3,
@@ -137,7 +137,8 @@
       "searchable": 1,
       "changeable": 1,
       "ext": {}
-    }, {
+    },
+    {
       "key": "DianYingYunJi",
       "name": "电影云集",
       "type": 3,
@@ -313,7 +314,7 @@
       "changeable": 0,
       "ext": {}
     },
-     {
+    {
       "key": "YunPanBa",
       "name": "云盘吧",
       "type": 3,
@@ -334,6 +335,14 @@
       "name": "盘搜┃搜索",
       "type": 3,
       "api": "csp_PanSearch",
+      "searchable": 1,
+      "timeout": 30
+    },
+    {
+      "key": "TianYiSo",
+      "name": "天翼┃搜索",
+      "type": 3,
+      "api": "csp_TianYiSo",
       "searchable": 1,
       "timeout": 30
     },

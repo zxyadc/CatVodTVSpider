@@ -1,8 +1,6 @@
-package com.github.catvod.bean.uc;
+package com.github.catvod.bean.tianyi;
 
 import com.github.catvod.api.TianYiHandler;
-import com.github.catvod.api.UCApi;
-import com.github.catvod.api.UCTokenHandler;
 import com.github.catvod.crawler.SpiderDebug;
 import com.github.catvod.spider.Init;
 import com.github.catvod.utils.Path;
@@ -25,26 +23,20 @@ public class Cache {
         return user == null ? new User("") : user;
     }
 
-    public void setUser(User user) {
+
+    public void setTianyiUser(User user) {
         this.user = user;
-        this.save();
+        this.saveTianyiUser();
     }
 
-    public void setTokenUser(User user) {
-        this.user = user;
-        this.saveToken();
+    public void saveTianyiUser() {
+        Init.execute(() -> Path.write(new TianYiHandler().getCache(), toString()));
     }
 
-
-
-    public void saveToken() {
-        Init.execute(() -> Path.write(new UCTokenHandler().getCache(), toString()));
+    public void saveTianyieUser() {
+        Init.execute(() -> Path.write(new TianYiHandler().geteCache(), toString()));
     }
 
-
-    public void save() {
-        Init.execute(() -> Path.write(UCApi.get().getCache(), toString()));
-    }
 
     @Override
     public String toString() {
@@ -52,4 +44,8 @@ public class Cache {
     }
 
 
+    public void setTianyieUser(User user) {
+        this.user = user;
+        this.saveTianyieUser();
+    }
 }

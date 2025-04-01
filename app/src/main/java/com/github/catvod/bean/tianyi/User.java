@@ -1,4 +1,4 @@
-package com.github.catvod.bean.uc;
+package com.github.catvod.bean.tianyi;
 
 import com.google.gson.annotations.SerializedName;
 
