@@ -3,14 +3,12 @@ package com.github.catvod.api;
 import android.text.TextUtils;
 import com.github.catvod.bean.Result;
 import com.github.catvod.bean.Vod;
-import com.github.catvod.bean.quark.Cache;
 import com.github.catvod.bean.tianyi.Item;
 import com.github.catvod.bean.tianyi.ShareData;
 import com.github.catvod.crawler.SpiderDebug;
 import com.github.catvod.net.OkHttp;
 import com.github.catvod.net.OkResult;
 import com.github.catvod.spider.Init;
-import com.github.catvod.spider.Proxy;
 import com.github.catvod.utils.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -18,7 +16,6 @@ import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
-import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
@@ -27,15 +24,15 @@ import java.util.regex.Pattern;
 public class TianyiApi {
     private String apiUrl = "https://cloud.189.cn/api/open/share/";
     public static final String URL_START = "https://cloud.189.cn/";
-    private String cookie = "";
+
 
     private Map<String, JsonObject> shareTokenCache = new HashMap<>();
 
 
-    private final Cache cache;
     private ScheduledExecutorService service;
     private String sessionKey = "";
     private TianYiHandler tianYiHandler;
+    private SimpleCookieJar cookieJar;
 
 
     public String[] getPlayFormatList() {
@@ -52,9 +49,45 @@ public class TianyiApi {
 
     public void setCookie(String token) throws Exception {
         if (StringUtils.isNoneBlank(token)) {
-            this.cookie = token;
-            initUserInfo();
+            JsonObject obj = Json.safeObject(token);
+            //初始化CookieJar
+            if (Objects.nonNull(obj)) {
+                tianYiHandler.setCookie(obj);
+            }
         }
+        if (!isCookieValid()) {
+            SpiderDebug.log("CookieJar不合法，请重新登录");
+            tianYiHandler.startScan();
+        }
+        getUserSizeInfo();
+        this.sessionKey = getUserBriefInfo();
+    }
+
+    /**
+     * 判断cookie是否为空，或者SSon为空，那就需要重新登陆
+     *
+     * @return
+     */
+    private boolean isCookieValid() {
+        if (cookieJar.getCookieStore().size() == 0) {
+            SpiderDebug.log("CookieJar为空");
+            return false;
+        } else {
+            for (String key : cookieJar.getCookieStore().keySet()) {
+                Map<String, String> cookieMap = cookieJar.getCookieStore().get(key);
+                for (String k : cookieMap.keySet()) {
+                    String cookieobj = cookieMap.get(k);
+                    if (k.equals("SSON") && StringUtils.isNoneBlank(cookieobj)) {
+                        SpiderDebug.log("SSON 不为空");
+                        return true;
+                    }
+
+                }
+
+            }
+        }
+        SpiderDebug.log("CookieJar 不合法，重新登录");
+        return false;
     }
 
     private Map<String, String> getHeaders() {
@@ -63,7 +96,8 @@ public class TianyiApi {
 
         headers.put("Content-Type", "application/x-www-form-urlencoded");
         headers.put("accept", "application/json;charset=UTF-8");
-        headers.put("Cookie", cookie);
+        headers.put("cookie", cookieJar.loadForRequest("https://cloud.189.cn/api/portal/getNewVlcVideoPlayUrl.action"));
+
         if (StringUtils.isNotBlank(sessionKey)) {
             headers.put("sessionKey", sessionKey);
         }
@@ -72,18 +106,11 @@ public class TianyiApi {
     }
 
 
-    public void init(String cookie) throws Exception {
-
-        this.cookie = cookie;
-
-        getUserSizeInfo();
-        this.sessionKey = getUserBriefInfo();
-    }
-
     private TianyiApi() {
         Init.checkPermission();
-        cache = Cache.objectFrom(Path.read(getCache()));
+
         tianYiHandler = new TianYiHandler();
+        cookieJar = tianYiHandler.getCookieJar();
     }
 
     public File getCache() {
@@ -143,13 +170,12 @@ public class TianyiApi {
         Map<String, String> header = getHeaders();
         header.remove("Host");
         header.remove("Content-Type");
+
+
+        header.put("Cookie", cookieJar.loadForRequest("https://cloud.189.cn/api/portal/getNewVlcVideoPlayUrl.action"));
         return Result.get().url(ProxyVideo.buildCommonProxyUrl(playUrl, header)).octet().header(header).string();
     }
 
-
-    private String proxyVideoUrl(String url, Map<String, String> header) {
-        return String.format(Proxy.getUrl() + "?do=quark&type=video&url=%s&header=%s", Util.base64Encode(url.getBytes(Charset.defaultCharset())), Util.base64Encode(Json.toJson(header).getBytes(Charset.defaultCharset())));
-    }
 
     /**
      * @param url
@@ -164,10 +190,7 @@ public class TianyiApi {
 
 
         int leftRetry = retry != null ? retry : 3;
-        if (StringUtils.isAllBlank(cookie)) {
-            this.initUserInfo();
-            return api(url, params, data, leftRetry - 1, method);
-        }
+
         OkResult okResult;
         if ("GET".equals(method)) {
             okResult = OkHttp.get(this.apiUrl + url, params, getHeaders());
@@ -192,55 +215,6 @@ public class TianyiApi {
             return api(url, params, data, leftRetry - 1, method);
         }
         return okResult.getBody();
-    }
-
-    private void initUserInfo() {
-        try {
-            SpiderDebug.log("initUserInfo...");
-
-            //extend没有cookie，从缓存中获取
-            if (StringUtils.isAllBlank(cookie)) {
-                SpiderDebug.log(" cookie from ext is empty...");
-                cookie = cache.getUser().getCookie();
-            }
-            init(cookie);
-            /*//获取到cookie，初始化quark，并且把cookie缓存一次
-            if (StringUtils.isNoneBlank(cookie) && cookie.contains("__pus")) {
-                SpiderDebug.log(" initQuark ...");
-                // initQuark(this.cookie);
-                cache.setUser(User.objectFrom(this.cookie));
-                return;
-            }
-
-            //没有cookie，也没有serviceTicket，抛出异常，提示用户重新登录
-            if (StringUtils.isAllBlank(cookie) && StringUtils.isAllBlank(serviceTicket)) {
-                SpiderDebug.log("cookie为空");
-                throw new RuntimeException("cookie为空");
-            }
-
-            String token = serviceTicket;
-            OkResult result = OkHttp.get("https://pan.quark.cn/account/info?st=" + token + "&lw=scan", new HashMap<>(), getHeaders());
-            Map json = Json.parseSafe(result.getBody(), Map.class);
-            if (json.get("success").equals(Boolean.TRUE)) {
-                List<String> cookies = result.getResp().get("set-Cookie");
-                List<String> cookieList = new ArrayList<>();
-                for (String cookie : cookies) {
-                    cookieList.add(cookie.split(";")[0]);
-                }
-                this.cookie += TextUtils.join(";", cookieList);
-
-                cache.setUser(User.objectFrom(this.cookie));
-                if (cache.getUser().getCookie().isEmpty()) throw new Exception(this.cookie);
-                // initQuark(this.cookie);
-            }
-*/
-        } catch (Exception e) {
-            cache.getUser().clean();
-            e.printStackTrace();
-
-        } finally {
-            //     while (cache.getUser().getCookie().isEmpty()) SystemClock.sleep(250);
-        }
     }
 
 
@@ -286,16 +260,16 @@ public class TianyiApi {
     private String getUserBriefInfo() throws Exception {
         OkResult result = OkHttp.get("https://cloud.189.cn/api/portal/v2/getUserBriefInfo.action", new HashMap<>(), getHeaders());
         JsonObject obj = Json.safeObject(result.getBody());
-        return obj.get("sessionKey").getAsString();
+        return obj.get("sessionKey") == null ? "" : obj.get("sessionKey").getAsString();
     }
 
     private String getUserSizeInfo() throws Exception {
         OkResult result = OkHttp.get("https://cloud.189.cn/api/portal/getUserSizeInfo.action", new HashMap<>(), getHeaders());
         JsonObject res = Json.safeObject(result.getBody());
-        if (res.isEmpty() || (Objects.nonNull(res.get("errorCode")) && res.get("errorCode").getAsString().equals("InvalidSessionKey"))) {
-           // tianYiHandler.startScan();
-            //tianYiHandler.refreshCookie(cookie);
-            tianYiHandler.startScan();
+        if (StringUtils.isAllBlank(result.getBody()) || (Objects.nonNull(res.get("errorCode")) && res.get("errorCode").getAsString().equals("InvalidSessionKey"))) {
+            // tianYiHandler.startScan();
+            tianYiHandler.refreshCookie();
+            //tianYiHandler.startScan();
         }
         return "";
 
@@ -335,11 +309,11 @@ public class TianyiApi {
              * }
              */
             if (Objects.nonNull(shareToken.get("res_code")) && shareToken.get("res_code").getAsInt() == 0) {
-                shareData.setShareId((String) shareToken.get("shareId").getAsString());
-                shareData.setShareMode((Integer) shareToken.get("shareMode").getAsInt());
+                shareData.setShareId(shareToken.get("shareId").getAsString());
+                shareData.setShareMode(shareToken.get("shareMode").getAsInt());
                 shareData.setFolder(shareToken.get("isFolder").getAsBoolean());
-                shareData.setFileId((String) shareToken.get("fileId").getAsString());
-                shareData.setFolderId((String) shareToken.get("fileId").getAsString());
+                shareData.setFileId(shareToken.get("fileId").getAsString());
+                shareData.setFolderId(shareToken.get("fileId").getAsString());
 
                 this.shareTokenCache.put(shareData.getShareId(), shareToken);
             }
@@ -432,28 +406,15 @@ public class TianyiApi {
                 SpiderDebug.log("获取天翼下载地址成功:" + normal);
                 return normal;
             }
-        } else {
-            SpiderDebug.log("获取下载地址失败:" + result.getBody());
+        } else if (res.get("errorCode") != null && res.get("errorCode").getAsString().equals("InvalidSessionKey")) {
+            //刷新cookie
+            SpiderDebug.log("天意cookie 过期，刷新cookie。。。。");
+            tianYiHandler.refreshCookie();
+            //重试下载
+            SpiderDebug.log("重试下载。。。。");
+            getDownload(shareId, fileId);
         }
         return "";
-    }
-
-    // Helper method to convert bytes to hex string
-    private String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
-    }
-
-    // Encoding helper method
-    private String encodeURIComponent(String value) {
-        try {
-            return java.net.URLEncoder.encode(value, "UTF-8");
-        } catch (Exception e) {
-            return value;
-        }
     }
 
 

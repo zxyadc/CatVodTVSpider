@@ -1,11 +1,11 @@
 {
-  "spider": "https://androidcatvodspider.netlify.app/jar/custom_spider.jar;md5;2564bdb95b6b930b55efb4bdfff9f588",
+  "spider": "https://androidcatvodspider.netlify.app/jar/custom_spider.jar;md5;35779f941df038cdb78a3ca45bdfe22b",
   "lives": [
     {
       "name": "电视直播",
       "type": "0",
       "pass": true,
-      "url": "https://tv.iill.top/m3u/Gather",
+      "url": "https://ghfast.top/raw.githubusercontent.com/Supprise0901/TVBox_live/main/live.txt",
       "epg": "https://epg.112114.xyz/?ch={name}&date={date}",
       "logo": "https://epg.112114.xyz/logo/{name}.png"
     },
@@ -128,6 +128,32 @@
       "searchable": 1,
       "changeable": 1,
       "ext": "{\"site\": [\"https://mihdr.top/\"]}"
+    },
+    {
+      "key": "PanTa",
+      "name": "盘他|Pan",
+      "type": 3,
+      "api": "csp_PanTa",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": {}
+    },
+    {
+      "key": "BiXin",
+      "name": "彼心|Pan",
+      "type": 3,
+      "api": "csp_BiXin",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": {}
+    },  {
+      "key": "TgSearch",
+      "name": "TgSearch|Pan",
+      "type": 3,
+      "api": "csp_TgSearch",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": {}
     },
     {
       "key": "KuaKeBa",
