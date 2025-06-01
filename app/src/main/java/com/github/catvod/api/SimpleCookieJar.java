@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class SimpleCookieJar {
     private Map<String, Map<String, String>> cookieStore = new HashMap<>();
-    private final Cache cache;
+
 
     public Map<String, Map<String, String>> getCookieStore() {
         return cookieStore;
@@ -30,18 +30,10 @@ public class SimpleCookieJar {
     }
 
     public SimpleCookieJar() {
-        this.cache = Cache.objectFrom(Path.read(getCache()));
-        String cookieStr = cache.getUser().getCookie();
-        if (StringUtils.isNoneBlank(cookieStr)) {
-            JsonObject cookieJson = Json.safeObject(cookieStr);
-            setGlobalCookie(cookieJson);
-        }
+
     }
 
 
-    public File getCache() {
-        return Path.tv("tianyi");
-    }
 
 
     public void saveFromResponse(String url, List<String> cookies) {
@@ -70,7 +62,6 @@ public class SimpleCookieJar {
 
 
         cookieStore.put(httpUrl.host(), oldCookies);
-        cache.setTianyiUser(User.objectFrom(Json.toJson(cookieStore)));
         SpiderDebug.log(" cookieStore now: " + Json.toJson(cookieStore));
 
     }

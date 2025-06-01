@@ -4,9 +4,13 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.util.Base64;
 import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 
 import com.github.catvod.bean.tianyi.Cache;
 import com.github.catvod.bean.tianyi.User;
@@ -19,14 +23,21 @@ import com.github.catvod.utils.Notify;
 import com.github.catvod.utils.Path;
 import com.github.catvod.utils.QRCode;
 import com.github.catvod.utils.ResUtil;
+import com.github.catvod.utils.Util;
 import com.google.gson.JsonObject;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +47,8 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import javax.crypto.Cipher;
 
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
@@ -68,11 +81,37 @@ public class TianYiHandler {
         return cookieJar;
     }
 
-    public TianYiHandler() {
+    private static class Loader {
+        static volatile TianYiHandler INSTANCE = new TianYiHandler();
+    }
+
+    public static TianYiHandler get() {
+        return TianYiHandler.Loader.INSTANCE;
+    }
+
+    private TianYiHandler() {
 
         cookieJar = new SimpleCookieJar();
         cache = Cache.objectFrom(Path.read(getCache()));
+    }
 
+    /**
+     * 初始化
+     */
+    public void init() {
+        String user = cache.getUser().getCookie();
+        if (StringUtils.isNoneBlank(user)) {
+            JsonObject jsonObject = Json.safeObject(user);
+            String username = jsonObject.get("username").getAsString();
+            String password = jsonObject.get("password").getAsString();
+            if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
+                this.startFlow();
+                return;
+            }
+            this.loginWithPassword(username, password);
+        } else {
+            this.startFlow();
+        }
     }
 
     public void cleanCookie() {
@@ -155,6 +194,178 @@ public class TianYiHandler {
 
     }
 
+    public void loginWithPassword(String uname, String passwd) {
+        try {
+            // Step 1: 获取加密配置
+            JsonObject encryptConf = getEncryptConf();
+            String pubKey = encryptConf.getAsJsonObject("data").get("pubKey").getAsString();
+
+            // Step 2: 获取登录参数
+            PasswordLoginParams params = getLoginParams();
+
+            // Step 3: 准备请求头
+            Map<String, String> headers = buildLoginHeaders(params.lt, params.reqId);
+
+            // Step 4: 获取应用配置
+            AppConfig config = getAppConfig(headers);
+
+            // Step 5: 加密凭证
+            EncryptedCredentials credentials = encryptCredentials(uname, passwd, pubKey);
+
+            // Step 6: 提交登录
+            LoginResult loginResult = submitLogin(headers, config, credentials);
+
+            // Step 7: 处理登录结果
+            processLoginResult(loginResult);
+
+            //保存的账号密码
+            JsonObject jsonObject = new JsonObject();
+            jsonObject.addProperty("username", uname);
+            jsonObject.addProperty("password", passwd);
+            cache.setTianyiUser(new User(Json.toJson(jsonObject)));
+
+        } catch (Exception e) {
+            SpiderDebug.log("登录失败: " + e.getMessage());
+            Notify.show("天翼登录失败: " + e.getMessage());
+        }
+    }
+
+    // 辅助方法实现
+    private JsonObject getEncryptConf() throws Exception {
+        String url = API_URL + "/api/logbox/config/encryptConf.do?appId=cloud";
+        OkResult result = OkHttp.post(url, new HashMap<>(), getHeader(url));
+        return Json.safeObject(result.getBody());
+    }
+
+    private PasswordLoginParams getLoginParams() throws Exception {
+        String url = "https://cloud.189.cn/api/portal/loginUrl.action?redirectURL=https://cloud.189.cn/web/redirect.html?returnURL=/main.action";
+        Map<String, List<String>> resHeaderMap = OkHttp.getLocationHeader(url, getHeader(url));
+
+
+        String redUrl = resHeaderMap.get("Location").get(0);
+        resHeaderMap = OkHttp.getLocationHeader(redUrl, getHeader(redUrl));
+        HttpUrl httpUrl = HttpUrl.parse(resHeaderMap.get("Location").get(0));
+        return new PasswordLoginParams(httpUrl.queryParameter("reqId"), httpUrl.queryParameter("lt"));
+    }
+
+    private Map<String, String> buildLoginHeaders(String lt, String reqId) {
+        Map<String, String> headers = new HashMap<>(getHeader(API_URL));
+        headers.put("Content-Type", "application/x-www-form-urlencoded");
+        headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:74.0) Gecko/20100101 Firefox/76.0");
+        headers.put("Referer", "https://open.e.189.cn/");
+        headers.put("Lt", lt);
+        headers.put("Reqid", reqId);
+        return headers;
+    }
+
+    private AppConfig getAppConfig(Map<String, String> headers) throws Exception {
+        Map<String, String> data = new HashMap<>();
+        data.put("version", "2.0");
+        data.put("appKey", "cloud");
+
+        OkResult result = OkHttp.post(API_URL + "/api/logbox/oauth2/appConf.do", data, headers);
+        JsonObject dataObj = Json.safeObject(result.getBody()).getAsJsonObject("data");
+        return new AppConfig(dataObj.get("returnUrl").getAsString(), dataObj.get("paramId").getAsString());
+    }
+
+    private EncryptedCredentials encryptCredentials(String uname, String passwd, String pubKey) throws Exception {
+        SpiderDebug.log("pubKey: " + pubKey);
+        PublicKey publicKey = parsePublicKey(pubKey);
+        return new EncryptedCredentials(encryptRSA(uname, publicKey), encryptRSA(passwd, publicKey));
+    }
+
+    private LoginResult submitLogin(Map<String, String> headers, AppConfig config, EncryptedCredentials credentials) throws Exception {
+        Map<String, String> data = new HashMap<>();
+        data.put("appKey", "cloud");
+        data.put("version", "2.0");
+        data.put("accountType", "02");
+        //data.put("mailSuffix", "@189.cn");
+        data.put("validateCode", "");
+        data.put("returnUrl", config.returnUrl);
+        data.put("paramId", config.paramId);
+        data.put("captchaToken", "");
+        data.put("dynamicCheck", "FALSE");
+        data.put("clientType", "1");
+        data.put("cb_SaveName", "3");
+        data.put("isOauth2", "false");
+        data.put("userName", "{NRP}" + credentials.encryptedUname);
+        data.put("password", "{NRP}" + credentials.encryptedPasswd);
+
+        OkResult result = OkHttp.post(API_URL + "/api/logbox/oauth2/loginSubmit.do", data, headers);
+        return new LoginResult(Json.safeObject(result.getBody()).get("toUrl").getAsString(), result.getResp().get("Set-Cookie"));
+    }
+
+    private void processLoginResult(LoginResult result) throws Exception {
+        saveCookie(result.cookies, API_URL + "/api/logbox/oauth2/loginSubmit.do");
+
+        // 处理重定向
+        Map<String, List<String>> okResult = OkHttp.getLocationHeader(result.toUrl, getHeader(result.toUrl));
+        saveCookie(okResult.get("Set-Cookie"), result.toUrl);
+    }
+
+    // 辅助类
+    private static class PasswordLoginParams {
+        final String reqId;
+        final String lt;
+
+        PasswordLoginParams(String reqId, String lt) {
+            this.reqId = reqId;
+            this.lt = lt;
+        }
+    }
+
+    private static class AppConfig {
+        final String returnUrl;
+        final String paramId;
+
+        AppConfig(String returnUrl, String paramId) {
+            this.returnUrl = returnUrl;
+            this.paramId = paramId;
+        }
+    }
+
+    private static class EncryptedCredentials {
+        final String encryptedUname;
+        final String encryptedPasswd;
+
+        EncryptedCredentials(String encryptedUname, String encryptedPasswd) {
+            this.encryptedUname = encryptedUname;
+            this.encryptedPasswd = encryptedPasswd;
+        }
+    }
+
+    private static class LoginResult {
+        final String toUrl;
+        final List<String> cookies;
+
+        LoginResult(String toUrl, List<String> cookies) {
+            this.toUrl = toUrl;
+            this.cookies = cookies;
+        }
+    }
+
+    private PublicKey parsePublicKey(String pubKey) throws Exception {
+
+        byte[] decoded = android.util.Base64.decode(pubKey, Base64.NO_WRAP);
+        X509EncodedKeySpec spec = new X509EncodedKeySpec(decoded);
+        return KeyFactory.getInstance("RSA").generatePublic(spec);
+
+    }
+
+    private String encryptRSA(String data, PublicKey publicKey) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        byte[] encrypted = cipher.doFinal(data.getBytes(Charset.defaultCharset()));
+        return bytesToHex(encrypted);
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder hex = new StringBuilder();
+        for (byte b : bytes) {
+            hex.append(String.format("%02x", b));
+        }
+        return hex.toString().toUpperCase();
+    }
 
     private String api(String url, Map<String, String> params, Map<String, String> headers, Integer retry, String method) throws InterruptedException {
 
@@ -344,6 +555,40 @@ public class TianYiHandler {
             Notify.show("请使用天翼网盘App扫描二维码");
         } catch (Exception ignored) {
         }
+    }
+
+    public void startFlow() {
+        Init.run(this::showInput);
+    }
+
+
+    private void showInput() {
+        try {
+            int margin = ResUtil.dp2px(16);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            LinearLayout frame = new LinearLayout(Init.context());
+            frame.setOrientation(LinearLayout.VERTICAL);
+            // frame.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            // params.setMargins(margin, margin, margin, margin);
+            EditText username = new EditText(Init.context());
+            username.setHint("请输入天翼用户名");
+            EditText password = new EditText(Init.context());
+            password.setHint("请输入天翼密码");
+            frame.addView(username, params);
+            frame.addView(password, params);
+            dialog = new AlertDialog.Builder(Init.getActivity()).setTitle("请输入天意用户名和密码").setView(frame).setNegativeButton(android.R.string.cancel, null).setPositiveButton(android.R.string.ok, (dialog, which) -> onPositive(username.getText().toString(), password.getText().toString())).show();
+        } catch (Exception ignored) {
+        }
+    }
+
+
+    private void onPositive(String username, String password) {
+        dismiss();
+        Init.execute(() -> {
+            loginWithPassword(username, password);
+
+
+        });
     }
 
     private void dismiss() {

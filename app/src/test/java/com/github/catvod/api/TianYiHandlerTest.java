@@ -18,7 +18,7 @@ public class TianYiHandlerTest {
 
     @Before
     public void setUp() {
-        tianYiHandler = new TianYiHandler();
+        tianYiHandler =  TianYiHandler.get();
 
     }
 
@@ -77,5 +77,11 @@ public class TianYiHandlerTest {
         assert URLEncoder.encode(url, "UTF-8").equals(encode);
     }
 
+
+    @Test
+    public void loginWithPassword() throws Exception {
+         tianYiHandler.loginWithPassword("18896781601","Lushunming@0526");
+        System.out.println("1111");
+    }
 
 }

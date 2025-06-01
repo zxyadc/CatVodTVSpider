@@ -72,12 +72,12 @@ public class Introduce extends Spider {
             qrCodeHandler.startUC_TOKENScan();
         }
         if (vodId.equals("天翼cookie")) {
-            TianYiHandler qrCodeHandler = new TianYiHandler();
-            qrCodeHandler.startScan();
+            TianYiHandler qrCodeHandler = TianYiHandler.get();
+            qrCodeHandler.startFlow();
         }
 
         if (vodId.equals("clean天翼cookie")) {
-            TianYiHandler qrCodeHandler = new TianYiHandler();
+            TianYiHandler qrCodeHandler = TianYiHandler.get();
             qrCodeHandler.cleanCookie();
         }
         Vod item = new Vod();

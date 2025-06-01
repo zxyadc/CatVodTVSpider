@@ -30,11 +30,11 @@ public class Cache {
     }
 
     public void saveTianyiUser() {
-        Init.execute(() -> Path.write(new TianYiHandler().getCache(), toString()));
+        Init.execute(() -> Path.write( TianYiHandler.get().getCache(), toString()));
     }
 
     public void saveTianyieUser() {
-        Init.execute(() -> Path.write(new TianYiHandler().geteCache(), toString()));
+        Init.execute(() -> Path.write( TianYiHandler.get().geteCache(), toString()));
     }
 
 

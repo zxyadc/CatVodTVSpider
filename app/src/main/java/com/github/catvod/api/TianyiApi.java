@@ -53,11 +53,12 @@ public class TianyiApi {
             //初始化CookieJar
             if (Objects.nonNull(obj)) {
                 tianYiHandler.setCookie(obj);
+                tianYiHandler.loginWithPassword(obj.get("username").getAsString(), obj.get("password").getAsString());
             }
         }
         if (!isCookieValid()) {
             SpiderDebug.log("CookieJar不合法，请重新登录");
-            tianYiHandler.startScan();
+           // tianYiHandler.startScan();
         }
         getUserSizeInfo();
         this.sessionKey = getUserBriefInfo();
@@ -109,7 +110,8 @@ public class TianyiApi {
     private TianyiApi() {
         Init.checkPermission();
 
-        tianYiHandler = new TianYiHandler();
+        tianYiHandler =  TianYiHandler.get();
+        tianYiHandler.init();
         cookieJar = tianYiHandler.getCookieJar();
     }
 
@@ -335,7 +337,7 @@ public class TianyiApi {
 
         for (JsonElement item : items) {
             if (item.getAsJsonObject().get("mediaType").getAsInt() == 3) {
-                if (item.getAsJsonObject().get("size").getAsInt() < 1024 * 1024 * 5) continue;
+                if (item.getAsJsonObject().get("size").getAsLong() < 1024 * 1024 * 5) continue;
 
                 videos.add(Item.objectFrom(item.getAsJsonObject(), shareData.getShareId(), shareIndex));
             } /*else if ("file".equals(item.get("type")) && this.subtitleExts.contains("." + Util.getExt((String) item.get("file_name")))) {
