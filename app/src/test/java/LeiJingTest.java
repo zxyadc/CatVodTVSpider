@@ -70,7 +70,7 @@ public class LeiJingTest {
     @org.junit.Test
     public void detailContent() throws Exception {
 
-        String content = spider.detailContent(Arrays.asList("thread?topicId=35472"));
+        String content = spider.detailContent(Arrays.asList("thread?topicId=40214"));
         System.out.println("detailContent--" + content);
 
         JsonObject map = Json.safeObject(content);

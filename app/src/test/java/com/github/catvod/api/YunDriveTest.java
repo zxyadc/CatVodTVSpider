@@ -1,6 +1,7 @@
 package com.github.catvod.api;
 
 import com.github.catvod.bean.tianyi.ShareData;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,12 +28,30 @@ public class YunDriveTest {
         System.out.println(result);
         for (String s : result.keySet()) {
             for (Map<String, String> stringStringMap : result.get(s)) {
-                String playUrl = yunDrive.fetchPlayUrl(stringStringMap.get("contentId"),"");
-                System.out.println(stringStringMap.get("name")+":"+playUrl);
+                String playUrl = yunDrive.fetchPlayUrl(stringStringMap.get("contentId"), "");
+                System.out.println(stringStringMap.get("name") + ":" + playUrl);
             }
 
 
         }
+
+
+    }
+
+    @Test
+    public void download() throws Exception {
+
+        Map<String, List<Map<String, String>>> result = yunDrive.processShareData("https://caiyun.139.com/w/i/2nQQVZWCR24yf");
+        System.out.println(result);
+        for (String s : result.keySet()) {
+            for (Map<String, String> stringStringMap : result.get(s)) {
+                String playUrl = yunDrive.fetchPlayUrl(stringStringMap.get("contentId"), stringStringMap.get("linkID"));
+                String url2 = yunDrive.get4kVideoInfo(stringStringMap.get("linkID"), stringStringMap.get("path"));
+                System.out.println(stringStringMap.get("name") + ":" + playUrl);
+                System.out.println(stringStringMap.get("url2") + ":" + url2);
+            }
+        }
+        //;
 
 
     }
@@ -48,4 +67,5 @@ public class YunDriveTest {
 
 
     }
+
 }

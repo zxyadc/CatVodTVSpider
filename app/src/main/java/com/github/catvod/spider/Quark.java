@@ -8,7 +8,6 @@ import com.github.catvod.bean.Result;
 import com.github.catvod.bean.quark.ShareData;
 import com.github.catvod.crawler.Spider;
 import com.github.catvod.crawler.SpiderDebug;
-import com.github.catvod.utils.Notify;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,12 +54,12 @@ public class Quark extends Spider {
         }*/
 
         for (int i = 1; i <= ids.size(); i++) {
-
+            playFrom.add("quark原画" + i + index);
             for (String s : QuarkApi.get().getPlayFormatList()) {
                 playFrom.add(String.format(Locale.getDefault(), "quark" + s + "#%02d%02d", i, index));
 
             }
-            playFrom.add("quark原画" + i + index);
+
         }
         return TextUtils.join("$$$", playFrom);
     }

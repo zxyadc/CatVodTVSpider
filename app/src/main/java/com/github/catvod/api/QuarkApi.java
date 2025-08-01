@@ -24,7 +24,14 @@ import com.github.catvod.net.OkHttp;
 import com.github.catvod.net.OkResult;
 import com.github.catvod.spider.Init;
 import com.github.catvod.spider.Proxy;
-import com.github.catvod.utils.*;
+import com.github.catvod.utils.Json;
+import com.github.catvod.utils.Notify;
+import com.github.catvod.utils.Path;
+import com.github.catvod.utils.ProxyServer;
+import com.github.catvod.utils.ProxyVideo;
+import com.github.catvod.utils.QRCode;
+import com.github.catvod.utils.ResUtil;
+import com.github.catvod.utils.Util;
 import com.google.gson.Gson;
 
 import org.apache.commons.lang3.StringUtils;
@@ -32,7 +39,15 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -73,7 +88,7 @@ public class QuarkApi {
         if (Util.getExt(url).contains("m3u8")) {
             return getM3u8(url, header);
         }
-        return ProxyVideo.proxy(url, header);
+        return ProxyVideo.proxyMultiThread(url, header);
     }
 
     /**
@@ -168,7 +183,7 @@ public class QuarkApi {
         } catch (Exception e) {
             SpiderDebug.log("资源已取消:" + e.getMessage());
             Notify.show("资源已取消");
-            throw  new RuntimeException(e);
+            throw new RuntimeException(e);
         }
 
         List<String> playFrom = QuarkApi.get().getPlayFormatList();
@@ -220,7 +235,7 @@ public class QuarkApi {
         Map<String, String> header = getHeaders();
         header.remove("Host");
         header.remove("Content-Type");
-        return Result.get().url(proxyVideoUrl(playUrl, header)).octet().header(header).string();
+        return Result.get().url(ProxyServer.INSTANCE.buildProxyUrl(playUrl, header)).octet().header(header).string();
     }
 
     private String proxyVideoUrl(String url, Map<String, String> header) {
@@ -377,7 +392,7 @@ public class QuarkApi {
 
     public List<String> getPlayFormatList() {
         if (this.isVip) {
-            return Arrays.asList("4K", "超清", "高清", "普画");
+            return Arrays.asList("4K"/*, "超清", "高清", "普画"*/);
         } else {
             return Collections.singletonList("普画");
         }
@@ -474,14 +489,17 @@ public class QuarkApi {
     }
 
     private void clearSaveDir() throws Exception {
-
         Map<String, Object> listData = Json.parseSafe(api("file/sort?" + this.pr + "&pdir_fid=" + this.saveDirId + "&_page=1&_size=200&_sort=file_type:asc,updated_at:desc", Collections.emptyMap(), Collections.emptyMap(), 0, "GET"), Map.class);
-        if (listData.get("data") != null && ((List<Map<String, Object>>) ((Map<String, Object>) listData.get("data")).get("list")).size() > 0) {
-            List<String> list = new ArrayList<>();
-            for (Map<String, Object> stringStringMap : ((List<Map<String, Object>>) ((Map<String, Object>) listData.get("data")).get("list"))) {
-                list.add((String) stringStringMap.get("fid"));
+
+        if (listData.get("data") != null) {
+            List<Map<String, Object>> fileList = (List<Map<String, Object>>) ((Map<String, Object>) listData.get("data")).get("list");
+            if (fileList.size() >= 10) {
+                List<String> fileIdsToDelete = new ArrayList<>();
+                for (Map<String, Object> file : fileList) {
+                    fileIdsToDelete.add((String) file.get("fid"));
+                }
+                api("file/delete?" + this.pr + "&uc_param_str=", Collections.emptyMap(), Map.of("action_type", 2, "filelist", fileIdsToDelete, "exclude_fids", Collections.emptyList()), 0, "POST");
             }
-            api("file/delete?" + this.pr, Collections.emptyMap(), Map.of("action_type", "2", "filelist", Json.toJson(list), "exclude_fids", ""), 0, "POST");
         }
     }
 

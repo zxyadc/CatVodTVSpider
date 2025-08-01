@@ -1,24 +1,38 @@
 package com.github.catvod.api;
 
+import androidx.annotation.NonNull;
+
+import com.github.catvod.bean.Result;
+import com.github.catvod.crawler.SpiderDebug;
 import com.github.catvod.net.OkHttp;
 import com.github.catvod.net.OkResult;
 import com.github.catvod.utils.Json;
+import com.github.catvod.utils.ProxyServer;
+import com.github.catvod.utils.ProxyVideo;
+import com.github.catvod.utils.Util;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.apache.commons.codec.binary.Base64;
-
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class YunDrive {
     private final Pattern regex = Pattern.compile("https://yun\\.139\\.com/shareweb/#/w/i/([^&]+)");
@@ -74,6 +88,14 @@ public class YunDrive {
         boolean finded = matcher.find();
         if (!finded) {
             matcher = Pattern.compile("https://caiyun\\.139\\.com/m/i\\?([^&]+)").matcher(url);
+            finded = matcher.find();
+        }
+        if (!finded) {
+            matcher = Pattern.compile("https://yun.139.com/shareweb/#/w/i/([\\w-]+)").matcher(url);
+            finded = matcher.find();
+        }
+        if (!finded) {
+            matcher = Pattern.compile("https://caiyun.139.com/w/i/([\\w-]+)").matcher(url);
             finded = matcher.find();
         }
 
@@ -169,7 +191,7 @@ public class YunDrive {
             for (JsonElement element : response.getAsJsonArray("coLst")) {
                 JsonObject entry = element.getAsJsonObject();
                 if (entry.get("coType").getAsInt() == 3) {
-                    items.add(Map.of("name", entry.get("coName").getAsString(), "contentId", entry.get("coID").getAsString(), "linkID", linkID));
+                    items.add(Map.of("name", entry.get("coName").getAsString(), "contentId", entry.get("coID").getAsString(), "linkID", linkID, "path", entry.get("path").getAsString()));
                 }
             }
         } else if (response.has("caLst")) {
@@ -195,8 +217,99 @@ public class YunDrive {
                 break;
             }
         }
-        return m3u8.split("playlist.m3u8")[0]+resultUrl;
+        return m3u8.split("playlist.m3u8")[0] + resultUrl;
     }
 
+    public String get4kVideoInfo(String fid, String linkID) throws Exception {
+        String auth = getAuth();
+        String phone = getPhone();
+
+        // 构建 JSON 请求体
+        Map<String, Object> requestBody = new HashMap<>();
+        Map<String, Object> dlFromOutLinkReqV3 = new HashMap<>();
+        Map<String, Object> commonAccountInfo = new HashMap<>();
+
+        dlFromOutLinkReqV3.put("linkID", linkID);
+        dlFromOutLinkReqV3.put("account", phone);
+
+        Map<String, Object> coIDLst = new HashMap<>();
+        coIDLst.put("item", Collections.singletonList(fid));
+        dlFromOutLinkReqV3.put("coIDLst", coIDLst);
+
+        commonAccountInfo.put("account", phone);
+        commonAccountInfo.put("accountType", 1);
+
+        requestBody.put("dlFromOutLinkReqV3", dlFromOutLinkReqV3);
+        requestBody.put("commonAccountInfo", commonAccountInfo);
+
+       /* {
+            "dlFromOutLinkReqV3" : {
+            "linkID" : "105CpbaJQFYc6",
+                    "account" : "18896781601",
+                    "coIDLst" : {
+                "item" : [ "DFTOdJkuAEwA1011ZpAcj1pl039202404112124392cb/Fkco6TgMKlnJwKbVul0ZKeYT5p2hIioVy" ]
+            }
+        },
+            "commonAccountInfo" : {
+            "account" : "18896781601",
+                    "accountType" : 1
+        }
+        }*/
+
+
+        // 构建请求
+        Map<String, String> header = getHeader();
+
+
+        OkResult okResult = OkHttp.post(baseUrl + "dlFromOutLinkV3", encrypt(Json.toJson(requestBody)), header);
+        JsonObject resultJson = Json.safeObject(decrypt(okResult.getBody()));
+        if (resultJson.get("resultCode").getAsInt() == 0) {
+            return resultJson.getAsJsonObject("data").get("redrUrl").getAsString();
+
+        }
+
+        // 解析 JSON 响应
+        return null;
+    }
+
+    private static String getPhone() {
+        String phone = StringUtils.split(Util.base64Decode(getAuth()), ":")[1];
+        SpiderDebug.log("phone:" + phone);
+        return phone;
+    }
+
+    private static String getAuth() {
+        String auth = YunTokenHandler.get().getToken();
+        SpiderDebug.log("auth:" + auth);
+        return auth;
+    }
+
+    @NonNull
+    private static Map<String, String> getHeader() {
+        Map<String, String> header = new HashMap<>();
+
+        header.put("X-Deviceinfo", "||3|12.27.0|safari|13.1.2|1||macos 10.15.6|1324X381|zh-cn|||");
+        header.put("hcy-cool-flag", "1");
+        header.put("Authorization", "Basic " + getAuth());
+        header.put("Content-Type", "application/json");
+        return header;
+    }
+
+
+    public String playerContent(String[] split, String flag) throws Exception {
+        String playUrl = "";
+        if (flag.contains("原画")) {
+            String contentId = split[0];
+            String linkID = split[1];
+            playUrl = YunDrive.get().get4kVideoInfo(contentId, linkID);
+            playUrl = ProxyServer.INSTANCE.buildProxyUrl(playUrl, new HashMap<>());
+
+        } else {
+            String contentId = split[0];
+            String linkID = split[1];
+            playUrl = YunDrive.get().fetchPlayUrl(contentId, linkID);
+        }
+        return Result.get().url(playUrl).octet().header(getHeader()).string();
+    }
 
 }

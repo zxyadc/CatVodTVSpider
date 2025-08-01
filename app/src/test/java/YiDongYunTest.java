@@ -41,7 +41,7 @@ public class YiDongYunTest {
     @org.junit.Test
     public void detailContent() throws Exception {
 
-        String content = spider.detailContent(Arrays.asList("https://yun.139.com/shareweb/#/w/i/165CkRwb9G885"));
+        String content = spider.detailContent(Arrays.asList("https://caiyun.139.com/w/i/2nQQVZWCR24yf"));
         System.out.println("detailContent--" + content);
         JsonObject map = Json.safeObject(content);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -49,10 +49,15 @@ public class YiDongYunTest {
         Assert.assertFalse(map.getAsJsonArray("list").isEmpty());
     }
 
+    /**
+     *  "vod_play_from": "移动(极速)$$$移动(原画)",
+     *       "vod_play_url": "01.mp4$FtgoS0iBwhPFnG-daRU5HJKQ2yBYj8I3x++2nQQVZWCR24yf#02.mp4$FiPG4ttnS-78swp-1sTFG4prNYnLaUvK_++2nQQVZWCR24yf$$$01.mp4$FtB-r8kHUbJFKbzW_r9tJt6YjcTZCVGWR/FtgoS0iBwhPFnG-daRU5HJKQ2yBYj8I3x++2nQQVZWCR24yf#02.mp4$FtB-r8kHUbJFKbzW_r9tJt6YjcTZCVGWR/FiPG4ttnS-78swp-1sTFG4prNYnLaUvK_++2nQQVZWCR24yf"
+     * @throws Exception
+     */
     @org.junit.Test
     public void playerContent() throws Exception {
 
-        String content = spider.playerContent("普画","41ea9a50cbdd4e50b019bcd78687ebc1++22fc6fa8350d22e0eaecc49035368e81++38c5e16d71f7++WFcYTmRhjJpKTui56aleYdzBZi9R203GERBVzYNxDxI=",new ArrayList<>());
+        String content = spider.playerContent("移动(原画)","FtB-r8kHUbJFKbzW_r9tJt6YjcTZCVGWR/FiPG4ttnS-78swp-1sTFG4prNYnLaUvK_++2nQQVZWCR24yf",new ArrayList<>());
         System.out.println("playerContent--" + content);
         JsonObject map = Json.safeObject(content);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();

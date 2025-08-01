@@ -1,5 +1,5 @@
 {
-  "spider": "https://ghproxy.net/https://raw.githubusercontent.com/lushunming/AndroidCatVodSpider/refs/heads/tianyiPassword/jar/custom_spider.jar;md5;bb54c03fd035f011b948b4ccf1273819",
+  "spider": "https://gh.llkk.cc/https://raw.githubusercontent.com/lushunming/AndroidCatVodSpider/multiThreadNew/jar/custom_spider.jar;md5;8c76ee60eb0363060a2d78fb8dc2f0b6",
   "lives": [
     {
       "name": "电视直播",
@@ -72,6 +72,15 @@
       "name": "盘他|139Pan",
       "type": 3,
       "api": "csp_PanTa",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": {}
+    },
+    {
+      "key": "LeiJing",
+      "name": "雷鲸|189Pan",
+      "type": 3,
+      "api": "csp_LeiJing",
       "searchable": 1,
       "changeable": 1,
       "ext": {}
